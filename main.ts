@@ -19,21 +19,24 @@ export default class IntelliTypo extends Plugin {
 
 		// Register a global keydown event listener for the hotkey
         this.registerDomEvent(document, 'keydown', (evt: KeyboardEvent) => {
-            if (this.isHotkeyPressed(evt, this.settings.openWindow)) {
+            if (isHotkeyPressed(evt, this.settings.openWindow)) {
                 // The hotkey has been pressed, implement your behavior here
-                this.showIntelliTypoWindow();
+                showIntelliTypoWindow();
             }
         });
 
 
 
-		isHotkeyPressed(event: KeyboardEvent, hotkey: string): boolean {
+		function isHotkeyPressed(event : KeyboardEvent, hotkey : string) {
+			console.log(hotkey)
 			const keys = hotkey.split('+');
 			const pressedKeys = keys.map((key) => key.trim().toLowerCase());
 	
 			for (const pressedKey of pressedKeys) {
 				if (!event[`${pressedKey}Key`]) {
 					return false;
+				} else {
+					return true;
 				}
 			}
 	
@@ -116,4 +119,3 @@ class SampleSettingTab extends PluginSettingTab {
 
 	}
 }
-function 

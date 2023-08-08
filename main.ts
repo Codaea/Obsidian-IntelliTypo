@@ -17,38 +17,26 @@ export default class IntelliTypo extends Plugin {
 		await this.loadSettings();
 
 
-		// Register a global keydown event listener for the hotkey
-        this.registerDomEvent(document, 'keydown', (evt: KeyboardEvent) => {
-            if (isHotkeyPressed(evt, this.settings.openWindow)) {
-                // The hotkey has been pressed, implement your behavior here
-                showIntelliTypoWindow();
-            }
+		// Register the hotkey
+        this.addCommand({
+            id: 'intelliTypo-open-hotkey',
+            name: 'Open IntelliTypo Hotkey',
+            callback: () => {
+				if (this.floatingBox) {
+					console.log("Closing Box")
+                    this.closeFloatingBox(); // Close the box if it's open
+                } else {
+					console.log("Opening Box")
+                    this.openFloatingBox(); // Open the box if it's closed
+                }
+			},
         });
 
 
 
-		function isHotkeyPressed(event : KeyboardEvent, hotkey : string) {
-			console.log(hotkey)
-			const keys = hotkey.split('+');
-			const pressedKeys = keys.map((key) => key.trim().toLowerCase());
-	
-			for (const pressedKey of pressedKeys) {
-				if (!event[`${pressedKey}Key`]) {
-					return false;
-				} else {
-					return true;
-				}
-			}
-	
-			return true;
-		}
 
-
-
-
-
-		// This adds a settings tab so the user can configure various aspects of the plugin
-		this.addSettingTab(new SampleSettingTab(this.app, this));
+		this.addSettingTab(new SettingsTab
+		(this.app, this));
 
 		// If the plugin hooks up any global DOM events (on parts of the app that doesn't belong to this plugin)
 		// Using this function will automatically remove the event listener when this plugin is disabled.
@@ -58,6 +46,39 @@ export default class IntelliTypo extends Plugin {
 
 		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
 		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
+	}
+
+	openFloatingBox() {
+		const editor = this.app.workspace.getActiveViewOfType(MarkdownView);
+        if (!editor) return;
+
+		const cursorPosition = editor.editor.getCursor();
+
+		// Create the floating box element
+		const floatingBox = document.createElement('div');
+		floatingBox.className = 'my-plugin-floating-box';
+		floatingBox.innerText = 'Your text here';
+
+		// Style the floating box
+		floatingBox.style.position = 'absolute';
+		floatingBox.style.border = '1px solid #ccc';
+		floatingBox.style.padding = '10px';
+		floatingBox.style.background = 'white';
+		floatingBox.style.zIndex = '9999';
+
+		// Append the box to the editor
+		document.body.appendChild(floatingBox);
+
+		// Position the box above the cursor
+		floatingBox.style.left = cursorPosition.ch + 100 + 'px';
+		floatingBox.style.top = cursorPosition.line - floatingBox.clientHeight + 100 + 'px';
+	}
+
+	closeFloatingBox() {
+        if (this.floatingBox) {
+            document.body.removeChild(this.floatingBox); // Remove the box from the document
+            this.floatingBox = null; // Clear the reference
+        }
 	}
 
 	onunload() {
@@ -79,17 +100,24 @@ class TypoModal extends Modal {
 	}
 
 	onOpen() {
-		const {contentEl} = this;
-		contentEl.setText('Woah!');
+        const { contentEl } = this;
+
+        // Create the content of your modal
+        const textBox = document.createElement('div');
+        textBox.className = 'my-plugin-modal-text-box';
+        textBox.innerText = 'Your text here';
+
+        // Append the content to the modal
+        contentEl.appendChild(textBox);
+    }
+
+    onClose() {
+        // Clean up or perform actions when the modal is closed
+    };
 	}
 
-	onClose() {
-		const {contentEl} = this;
-		contentEl.empty();
-	}
-}
 
-class SampleSettingTab extends PluginSettingTab {
+class SettingsTab extends PluginSettingTab {
 	plugin: IntelliTypo;
 
 	constructor(app: App, plugin: IntelliTypo) {
@@ -101,21 +129,5 @@ class SampleSettingTab extends PluginSettingTab {
 		const {containerEl} = this;
 
 		containerEl.empty();
-
-		// Add a hotkey setting
-        new Setting(containerEl)
-            .setName('Open IntelliTypo Window')
-            .setDesc('Set the hotkey to open the IntelliTypo window')
-            .addText((text) =>
-                text
-                    .setPlaceholder('Click to set')
-                    .setValue(this.plugin.settings.openWindow)
-                    .onChange(async (value) => {
-                        this.plugin.settings.openWindow = value;
-                        await this.plugin.saveSettings();
-                    })
-            );
-
-
 	}
 }

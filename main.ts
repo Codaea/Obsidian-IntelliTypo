@@ -12,22 +12,30 @@ const DEFAULT_SETTINGS: IntelliTypoSettings = {
 
 export default class IntelliTypo extends Plugin {
 	settings: IntelliTypoSettings;
+	private typoBox: HTMLElement | null = null; // Updated property name
+
+	private options: string[] = ['Option 1', 'Option 2', 'Option 3']; // List of options
+
+    private currentOptionIndex: number = 0; // Index of the currently selected option
+
 
 	async onload() {
 		await this.loadSettings();
 
-
+		let boxOpen = false;
 		// Register the hotkey
         this.addCommand({
             id: 'intelliTypo-open-hotkey',
             name: 'Open IntelliTypo Hotkey',
             callback: () => {
-				if (this.floatingBox) {
+				if (boxOpen) {
 					console.log("Closing Box")
-                    this.closeFloatingBox(); // Close the box if it's open
+                    this.closetypoBox(); // Close the box if it's open
+					boxOpen = false;
                 } else {
 					console.log("Opening Box")
-                    this.openFloatingBox(); // Open the box if it's closed
+                    this.opentypoBox(); // Open the box if it's closed
+					boxOpen = true;
                 }
 			},
         });
@@ -48,41 +56,81 @@ export default class IntelliTypo extends Plugin {
 		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
 	}
 
-	openFloatingBox() {
+	opentypoBox() {
 		const editor = this.app.workspace.getActiveViewOfType(MarkdownView);
         if (!editor) return;
 
 		const cursorPosition = editor.editor.getCursor();
 
 		// Create the floating box element
-		const floatingBox = document.createElement('div');
-		floatingBox.className = 'my-plugin-floating-box';
-		floatingBox.innerText = 'Your text here';
+		this.typoBox = document.createElement('div');
+		this.typoBox.className = 'TypoBox';
+		this.typoBox.innerText = 'Your text here';
 
 		// Style the floating box
-		floatingBox.style.position = 'absolute';
-		floatingBox.style.border = '1px solid #ccc';
-		floatingBox.style.padding = '10px';
-		floatingBox.style.background = 'white';
-		floatingBox.style.zIndex = '9999';
+		this.typoBox.style.position = 'absolute';
+		this.typoBox.style.border = '1px solid #ccc';
+		this.typoBox.style.padding = '10px';
+		this.typoBox.style.background = 'white';
+		this.typoBox.style.zIndex = '9999';
+		this.typoBox.style.position = 'fixed';
+
+		// Calculate the position relative to the viewport
+        const left = cursorPosition.ch + window.scrollX + 600;
+        const top = cursorPosition.line + window.scrollY + 140;
+
+		this.typoBox.style.left = left + 'px';
+		this.typoBox.style.top = top + 'px';
+
+
+
+		document.addEventListener('keydown', this.handleKeyDown);
+
 
 		// Append the box to the editor
-		document.body.appendChild(floatingBox);
+		document.body.appendChild(this.typoBox);
 
-		// Position the box above the cursor
-		floatingBox.style.left = cursorPosition.ch + 100 + 'px';
-		floatingBox.style.top = cursorPosition.line - floatingBox.clientHeight + 100 + 'px';
+		// let scrollInfo= editor.editor.getScrollInfo
+		// scrollInfo
 	}
 
-	closeFloatingBox() {
-        if (this.floatingBox) {
-            document.body.removeChild(this.floatingBox); // Remove the box from the document
-            this.floatingBox = null; // Clear the reference
+	closetypoBox() {
+        if (this.typoBox) {
+            document.body.removeChild(this.typoBox); // Remove the box from the document
+            this.typoBox = null; // Clear the reference
+			document.removeEventListener('keydown', this.handleKeyDown);
         }
 	}
 
-	onunload() {
+	handleKeyDown = (event: KeyboardEvent) => {
 
+		// Prevent default behavior of arrow keys (up and down)
+        if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+            event.preventDefault();
+        }
+
+        // Respond to keyboard inputs
+        switch (event.key) {
+            case 'ArrowUp':
+                this.navigateOptions(-1); // Move to the previous option
+                break;
+            case 'ArrowDown':
+                this.navigateOptions(1); // Move to the next option
+                break;
+            // Add more cases to handle other keys if needed
+        }
+    }
+
+	navigateOptions(direction: number) {
+        this.currentOptionIndex = (this.currentOptionIndex + direction + this.options.length) % this.options.length;
+        if (this.typoBox) {
+            this.typoBox.innerText = this.options[this.currentOptionIndex];
+        }
+    }
+
+
+	onunload() {
+		
 	}
 
 	async loadSettings() {
